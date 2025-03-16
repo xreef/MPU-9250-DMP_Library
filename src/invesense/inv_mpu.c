@@ -17,12 +17,13 @@
  *                  MPU9150 (or MPU6050 w/ AK8975 on the auxiliary bus)
  *                  MPU9250 (or MPU6500 w/ AK8963 on the auxiliary bus)
  */
+#include "../invesense/inv_mpu.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "inv_mpu.h"
 
 #ifdef ESP32
 #define min(a,b) ((a)<(b)?(a):(b))
@@ -46,8 +47,8 @@
  */
 #include <Arduino.h>
 #define MPU9250
-#include "arduino_mpu9250_i2c.h"
-#include "arduino_mpu9250_clk.h"
+#include "../invesense/arduino_mpu9250_i2c.h"
+#include "../invesense/arduino_mpu9250_clk.h"
 #define i2c_write(a, b, c, d) arduino_i2c_write(a, b, c, d)
 #define i2c_read(a, b, c, d)  arduino_i2c_read(a, b, c, d)
 #define delay_ms  arduino_delay_ms

@@ -14,27 +14,19 @@
  *      @details    All functions are preceded by the dmp_ prefix to
  *                  differentiate among MPL and general driver function calls.
  */
+#include "../invesense/inv_mpu_dmp_motion_driver.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "inv_mpu.h"
-#include "inv_mpu_dmp_motion_driver.h"
-#include "dmpKey.h"
-#include "dmpmap.h"
-
-/* The following functions must be defined for this platform:
- * i2c_write(unsigned char slave_addr, unsigned char reg_addr,
- *      unsigned char length, unsigned char const *data)
- * i2c_read(unsigned char slave_addr, unsigned char reg_addr,
- *      unsigned char length, unsigned char *data)
- * delay_ms(unsigned long num_ms)
- * get_ms(unsigned long *count)
- */
 #include <Arduino.h>
-#include "arduino_mpu9250_i2c.h"
-#include "arduino_mpu9250_clk.h"
+#include "../invesense/arduino_mpu9250_clk.h"
+#include "../invesense/arduino_mpu9250_i2c.h"
+#include "../invesense/dmpKey.h"
+#include "../invesense/dmpmap.h"
+#include "../invesense/inv_mpu.h"
 #define i2c_write(a, b, c, d) arduino_i2c_write(a, b, c, d)
 #define i2c_read(a, b, c, d)  arduino_i2c_read(a, b, c, d)
 #define delay_ms  arduino_delay_ms

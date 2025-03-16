@@ -1,11 +1,10 @@
 ################################################################################
-#         Syntax Coloring Map for SparkFun MPU-9250 Arduino Library            #
+#         Syntax Coloring Map for MPU-9250 Arduino Library            #
 ################################################################################
 
 ################################################################################
 # Datatypes (KEYWORD1)
 ################################################################################
-SparkFunMPU9250-DMP	KEYWORD1
 MPU9250_DMP	KEYWORD1
 ax	KEYWORD1
 ay	KEYWORD1
@@ -92,6 +91,8 @@ calcQuat	KEYWORD2
 qToFloat	KEYWORD2
 computeEulerAngles	KEYWORD2
 computeCompassHeading	KEYWORD2
+calcTempCelsius	KEYWORD2
+calcTempFahrenheit	KEYWORD2
 
 ################################################################################
 # Constants (LITERAL1)

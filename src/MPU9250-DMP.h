@@ -1,5 +1,9 @@
 /******************************************************************************
-SparkFunMPU9250-DMP.h - MPU-9250 Digital Motion Processor Arduino Library 
+MPU9250-DMP.h - MPU-9250 Digital Motion Processor Arduino Library 
+
+ Renzo Mischianti @ mischianti.org
+ https://github.com/xreef/MPU-9250-DMP_Library
+
 Jim Lindblom @ SparkFun Electronics
 original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
@@ -7,13 +11,6 @@ https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 This library implements motion processing functions of Invensense's MPU-9250.
 It is based on their Emedded MotionDriver 6.12 library.
 	https://www.invensense.com/developers/software-downloads/
-
-Development environment specifics:
-Arduino IDE 1.6.12
-SparkFun 9DoF Razor IMU M0
-
-Supported Platforms:
-- ATSAMD21 (Arduino Zero, SparkFun SAMD21 Breakouts)
 ******************************************************************************/
 #ifndef _SPARKFUN_MPU9250_DMP_H_
 #define _SPARKFUN_MPU9250_DMP_H_
@@ -29,8 +26,8 @@ Supported Platforms:
 
 // Include the Invensense MPU9250 driver and DMP keys:
 extern "C" {
-#include "util/inv_mpu.h"
-#include "util/inv_mpu_dmp_motion_driver.h"
+#include "invesense/inv_mpu.h"
+#include "invesense/inv_mpu_dmp_motion_driver.h"
 }
 
 typedef int inv_error_t;
@@ -356,6 +353,14 @@ public:
 	float calcGyro(int axis);
 	// calcMag -- Convert 16-bit signed magnetometer value to microtesla (uT)
 	float calcMag(int axis);
+
+	// calcTempCelsius -- Convert the raw temperature value from the sensor to degrees Celsius
+	float calcTempCelsius();
+	// calcTempFahrenheit -- Convert the raw temperature value from the sensor to degrees Celsius,
+	// then convert it to degrees Fahrenheit
+	float calcTempFahrenheit();
+
+
 	// calcQuat -- Convert Q30-format quaternion to a vector between +/- 1
 	float calcQuat(long axis);
 	

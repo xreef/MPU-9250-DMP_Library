@@ -1,10 +1,14 @@
-SparkFun MPU-9250 Digital Motion Processor (DMP) Arduino Library
+MPU-9250 DMP Library
+
+Renzo Mischianti detail at [mischianti.org](mischianti.org)
+
+
 ========================================
 
-![SparkFun MPU-9250](https://cdn.sparkfun.com/assets/parts/1/1/3/0/6/13762-SparkFun_IMU_Breakout_-_MPU-9250-00.jpg)
+This library born from a fork of SparkFun MPU-9250 Digital Motion Processor (DMP) Arduino Library
+I do this because the original library is not maintained and not support esp32 and other microcontrollers.
 
-
-[*SparkFun MPU-9250 (SEN-13762)*](https://www.sparkfun.com/products/13762)
+========================================
 
 Advanced Arduino library for the Invensense MPU-9250 inertial measurement unit (IMU), which enables the sensor's digital motion processing (DMP) features. Along with configuring and reading from the accelerometer, gyroscope, and magnetometer, this library also supports the chip's DMP features like:
 
@@ -13,12 +17,6 @@ Advanced Arduino library for the Invensense MPU-9250 inertial measurement unit (
 * Gyroscope calibration
 * Tap detection
 * Orientation dtection
-
-For help getting started with this library, refer to the [Using the MPU-9250 DMP Arduino Library](https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide#using-the-mpu-9250-dmp-arduino-library) section of the 9DoF Razor IMU M0 Hookup Guide.
-
-**Note**: This library currently only supports and is tested on **SAMD processors**. It's a major part of the [SparkFun 9DoF Razor IMU M0](https://www.sparkfun.com/products/14001) firmware.
-
-If you're looking for an AVR-compatible (Arduino Uno, SparkFun RedBoard, etc.) library, check out the [SparkFun MPU-9250 Breakout Library](https://github.com/sparkfun/SparkFun_MPU-9250_Breakout_Arduino_Library), which provides access to all standard MPU-9250 sensor-readings.
 
 Repository Contents
 -------------------
@@ -29,33 +27,108 @@ Repository Contents
 * **keywords.txt** - Keywords from this library that will be highlighted in the Arduino IDE. 
 * **library.properties** - General library properties for the Arduino package manager. 
 
-Documentation
---------------
+Changelog
+---------------
+2024-08-19: v1.0.0 Fist commit of production library
 
-* **[Installing an Arduino Library Guide](https://learn.sparkfun.com/tutorials/installing-an-arduino-library)** - Basic information on how to install an Arduino library.
-* **[SparkFun 9DoF Razor IMU M0 Repository](https://github.com/sparkfun/9DOF_Razor_IMU)** - Main repositor (including hardware files) for the MPU-9250-based SparkFun 9DoF Razor IMU M0
-* **[MPU-9250 Breakout Repository](https://github.com/sparkfun/MPU-9250_Breakout)** - Main repository (including hardware files) for the MPU-9250 Breakout.
-* **[Hookup Guide](https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide)** - Basic hookup guide for the SparkFun 9DoF Razor IMU M0, including a [section on using this library](https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide#using-the-mpu-9250-dmp-arduino-library).
+Certainly! Below is an enhanced README section with small, explained code snippets in Markdown syntax for integrating and using the MPU-9250 sensor with an Arduino:
 
-Products that use this Library 
----------------------------------
-
-* [SparkFun 9DoF Razor IMU M0 (SEN-14001)](https://www.sparkfun.com/products/14001)- An MPU-9250 development board, which includes an Arduino-compatible SAMD21 processor, LiPo battery charger, and USB interface.
-* [SparkFun MPU-9250 Breakout (SEN-13762)](https://www.sparkfun.com/products/13762)- Easily adaptible breakout board for the MPU-9250.
-
-Version History
+Setting Up the MPU-9250
 ---------------
 
+To get started with the MPU-9250, include the necessary library and initialize the sensor. This snippet demonstrates the basic setup process:
 
-License Information
--------------------
+```cpp
+#include <MPU9250-DMP.h>
 
-This product is _**open source**_! 
+MPU9250_DMP imu;
 
-Please review the LICENSE.md file for license information. 
+void setup() {
+  Serial.begin(115200);
 
-If you have any questions or concerns on licensing, please contact techsupport@sparkfun.com.
+  // Initialize the MPU-9250 and check if it's connected properly
+  if (imu.begin() != INV_SUCCESS) {
+    while (1) {
+      Serial.println("Unable to communicate with MPU-9250");
+      delay(5000);
+    }
+  }
 
-Distributed as-is; no warranty is given.
+  // Enable all sensors (Gyroscope, Accelerometer, Compass)
+  imu.setSensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
+}
+```
 
-- Your friends at SparkFun.
+### Configuring Sensor Settings
+
+You can configure the full-scale ranges for the gyroscope and accelerometer, as well as set up the digital low-pass filter (LPF) and sample rate:
+
+```cpp
+// Set gyroscope full scale range to ±2000 degrees per second (dps)
+imu.setGyroFSR(2000);
+
+// Set accelerometer full scale range to ±2g
+imu.setAccelFSR(2);
+
+// Set digital low-pass filter to 5Hz for smooth data output
+imu.setLPF(5);
+
+// Set the sample rate for accelerometer and gyroscope to 10Hz
+imu.setSampleRate(10);
+
+// Set the magnetometer (compass) sample rate to 10Hz
+imu.setCompassSampleRate(10);
+```
+
+### Reading Sensor Data Without FIFO
+
+To read data from the accelerometer, gyroscope, and magnetometer directly (without using the FIFO buffer):
+
+```cpp
+void loop() {
+  // Check if new data is available from the sensor
+  if (imu.dataReady()) {
+    // Update the sensor data (Accel, Gyro, Compass)
+    imu.update(UPDATE_ACCEL | UPDATE_GYRO | UPDATE_COMPASS);
+
+    // Access and print the updated data
+    Serial.println("Accel X: " + String(imu.calcAccel(imu.ax)) + " g");
+    Serial.println("Gyro X: " + String(imu.calcGyro(imu.gx)) + " dps");
+    Serial.println("Mag X: " + String(imu.calcMag(imu.mx)) + " uT");
+  }
+}
+```
+
+### Using the FIFO for Stable Orientation Data
+
+For applications requiring stable orientation data, you can use the Digital Motion Processor (DMP) with the FIFO buffer to calculate quaternions and Euler angles:
+
+```cpp
+// Initialize the DMP to output quaternion data at 10Hz
+imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL, 10);
+
+void loop() {
+  // Check if new data is available in the FIFO
+  if (imu.fifoAvailable()) {
+    // Update the FIFO and calculate quaternion values
+    if (imu.dmpUpdateFifo() == INV_SUCCESS) {
+      // Compute Euler angles from the quaternion data
+      imu.computeEulerAngles();
+
+      // Print Euler angles (Roll, Pitch, Yaw)
+      Serial.print("Roll: "); Serial.println(imu.roll);
+      Serial.print("Pitch: "); Serial.println(imu.pitch);
+      Serial.print("Yaw: "); Serial.println(imu.yaw);
+    }
+  }
+}
+```
+
+### Summary
+
+- **Initialization**: Begin by including the library, initializing the MPU-9250, and enabling the necessary sensors.
+- **Configuration**: Customize the gyroscope and accelerometer ranges, set the LPF, and adjust the sample rates.
+- **Reading Data**: Directly read the sensor data using `update()` or use the FIFO buffer for stable orientation measurements.
+- **Orientation Tracking**: Utilize the DMP and FIFO to compute and track orientation using quaternions and Euler angles.
+
+These examples demonstrate how to use the MPU-9250 in a variety of scenarios, here a basic data acquisition and orientation tracking.

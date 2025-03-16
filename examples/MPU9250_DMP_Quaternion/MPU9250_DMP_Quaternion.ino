@@ -1,6 +1,10 @@
 /************************************************************
 MPU9250_DMP_Quaternion
  Quaternion example for MPU-9250 DMP Arduino Library 
+
+  Renzo Mischianti @ mischianti.org
+ https://github.com/xreef/MPU-9250-DMP_Library
+
 Jim Lindblom @ SparkFun Electronics
 original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
@@ -14,16 +18,14 @@ calculate quaternions, and prints them out to the serial
 monitor. It also calculates pitch, roll, and yaw from those
 values.
 
-Development environment specifics:
-Arduino IDE 1.6.12
-SparkFun 9DoF Razor IMU M0
-
-Supported Platforms:
-- ATSAMD21 (Arduino Zero, SparkFun SAMD21 Breakouts)
 *************************************************************/
-#include <SparkFunMPU9250-DMP.h>
+#include <MPU9250-DMP.h>
 
+#if defined(SAMD)
 #define SerialPort SerialUSB
+#else
+#define SerialPort Serial
+#endif
 
 MPU9250_DMP imu;
 

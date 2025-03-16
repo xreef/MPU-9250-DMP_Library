@@ -1,5 +1,9 @@
 /******************************************************************************
-SparkFunMPU9250-DMP.cpp - MPU-9250 Digital Motion Processor Arduino Library 
+MPU9250-DMP.cpp - MPU-9250 Digital Motion Processor Arduino Library 
+
+ Renzo Mischianti @ mischianti.org
+ https://github.com/xreef/MPU-9250-DMP_Library
+
 Jim Lindblom @ SparkFun Electronics
 original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
@@ -8,18 +12,12 @@ This library implements motion processing functions of Invensense's MPU-9250.
 It is based on their Emedded MotionDriver 6.12 library.
 	https://www.invensense.com/developers/software-downloads/
 
-Development environment specifics:
-Arduino IDE 1.6.12
-SparkFun 9DoF Razor IMU M0
-
-Supported Platforms:
-- ATSAMD21 (Arduino Zero, SparkFun SAMD21 Breakouts)
 ******************************************************************************/
-#include "SparkFunMPU9250-DMP.h"
+#include "MPU9250-DMP.h"
 #include "MPU9250_RegisterMap.h"
 
 extern "C" {
-#include "util/inv_mpu.h"
+#include "invesense/inv_mpu.h"
 }
 
 static unsigned char mpu9250_orientation;
@@ -30,10 +28,18 @@ static void orient_cb(unsigned char orient);
 static void tap_cb(unsigned char direction, unsigned char count);
 
 MPU9250_DMP::MPU9250_DMP()
+  : ax(0), ay(0), az(0),      // Accelerometer readings
+    gx(0), gy(0), gz(0),      // Gyroscope readings
+    mx(0), my(0), mz(0),      // Magnetometer readings
+    qw(0), qx(0), qy(0), qz(0),// Quaternion components
+    temperature(0),          // Temperature reading
+    time(0),                 // Timestamp
+    pitch(0.0f), roll(0.0f), yaw(0.0f), // Euler angles
+    heading(0.0f)            // Compass heading
 {
-	_mSense = 6.665f; // Constant - 4915 / 32760
-	_aSense = 0.0f;   // Updated after accel FSR is set
-	_gSense = 0.0f;   // Updated after gyro FSR is set
+	_mSense = 6.665f; // Constant magnetometer sensitivity (4915 / 32760)
+	_aSense = 0.0f;   // Accelerometer sensitivity; updated after FSR is set
+	_gSense = 0.0f;   // Gyroscope sensitivity; updated after FSR is set
 }
 
 inv_error_t MPU9250_DMP::begin(void)
@@ -605,6 +611,16 @@ float MPU9250_DMP::calcMag(int axis)
 	return (float) axis / (float) _mSense;
 }
 
+float MPU9250_DMP::calcTempCelsius()
+{
+	return ((float)temperature)/100000;
+}
+float MPU9250_DMP::calcTempFahrenheit()
+{
+    float tempCelsius = ((float)temperature) / 100000;
+    return (tempCelsius * 9.0 / 5.0) + 32.0;
+}
+
 float MPU9250_DMP::calcQuat(long axis)
 {
 	return qToFloat(axis, 30);
@@ -617,34 +633,41 @@ float MPU9250_DMP::qToFloat(long number, unsigned char q)
 
 void MPU9250_DMP::computeEulerAngles(bool degrees)
 {
-	float dqw = qToFloat(qw, 30);
-	float dqx = qToFloat(qx, 30);
-	float dqy = qToFloat(qy, 30);
-	float dqz = qToFloat(qz, 30);
+    float dqw = qToFloat(qw, 30);
+    float dqx = qToFloat(qx, 30);
+    float dqy = qToFloat(qy, 30);
+    float dqz = qToFloat(qz, 30);
 
-	float norm = sqrt(dqw*dqw + dqx*dqx + dqy*dqy + dqz*dqz);
-	dqw = dqw/norm;
-	dqx = dqx/norm;
-	dqy = dqy/norm;
-	dqz = dqz/norm;
+    float norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz);
+    dqw = dqw / norm;
+    dqx = dqx / norm;
+    dqy = dqy / norm;
+    dqz = dqz / norm;
 
-	float ysqr = dqy * dqy;
+    float ysqr = dqy * dqy;
 
-	// roll (x-axis rotation)
-	float t0 = +2.0 * (dqw * dqx + dqy * dqz);
-	float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
-	roll = atan2(t0, t1);
+    // roll (x-axis rotation)
+    float t0 = +2.0 * (dqw * dqx + dqy * dqz);
+    float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
+    roll = atan2(t0, t1);
 
-	// pitch (y-axis rotation)
-	float t2 = +2.0 * (dqw * dqy - dqz * dqx);
-	t2 = t2 > 1.0 ? 1.0 : t2;
-	t2 = t2 < -1.0 ? -1.0 : t2;
-	pitch = asin(t2);
+    // pitch (y-axis rotation)
+    float t2 = +2.0 * (dqw * dqy - dqz * dqx);
+    t2 = t2 > 1.0 ? 1.0 : t2;
+    t2 = t2 < -1.0 ? -1.0 : t2;
+    pitch = asin(t2);
 
-	// yaw (z-axis rotation)
-	float t3 = +2.0 * (dqw * dqz + dqx * dqy);
-	float t4 = +1.0 - 2.0 * (ysqr + dqz * dqz);
-	yaw = atan2(t3, t4);
+    // yaw (z-axis rotation)
+    float t3 = +2.0 * (dqw * dqz + dqx * dqy);
+    float t4 = +1.0 - 2.0 * (ysqr + dqz * dqz);
+    yaw = atan2(t3, t4);
+
+    // Convert radians to degrees if required
+    if (degrees) {
+        roll = roll * 180.0 / M_PI;
+        pitch = pitch * 180.0 / M_PI;
+        yaw = yaw * 180.0 / M_PI;
+    }
 }
 
 float MPU9250_DMP::computeCompassHeading(void)

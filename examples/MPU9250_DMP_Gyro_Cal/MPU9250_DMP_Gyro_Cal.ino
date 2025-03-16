@@ -1,6 +1,10 @@
 /************************************************************
 MPU9250_DMP_Gyro_Cal
  Gyro calibration example for MPU-9250 DMP Arduino Library 
+
+  Renzo Mischianti @ mischianti.org
+ https://github.com/xreef/MPU-9250-DMP_Library
+
 Jim Lindblom @ SparkFun Electronics
 original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
@@ -10,16 +14,14 @@ digital motion processor (DMP) to calibrate the gyroscope.
 After eight seconds of no motion, the DMP will compute
 gyro biases and subtract them.
 
-Development environment specifics:
-Arduino IDE 1.6.12
-SparkFun 9DoF Razor IMU M0
-
-Supported Platforms:
-- ATSAMD21 (Arduino Zero, SparkFun SAMD21 Breakouts)
 *************************************************************/
-#include <SparkFunMPU9250-DMP.h>
+#include <MPU9250-DMP.h>
 
+#if defined(SAMD)
 #define SerialPort SerialUSB
+#else
+#define SerialPort Serial
+#endif
 
 MPU9250_DMP imu;
 
