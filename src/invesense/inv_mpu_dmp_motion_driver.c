@@ -31,8 +31,14 @@
 #define i2c_read(a, b, c, d)  arduino_i2c_read(a, b, c, d)
 #define delay_ms  arduino_delay_ms
 #define get_ms    arduino_get_clock_ms
-#define log_i     _MLPrintLog
-#define log_e     _MLPrintLog
+#ifdef log_i
+#undef log_i
+#endif
+#ifdef log_e
+#undef log_e
+#endif
+#define log_i(...) do {} while(0)
+#define log_e(...) do {} while(0)
 
 /* These defines are copied from dmpDefaultMPU6050.c in the general MPL
  * releases. These defines may change for each DMP image, so be sure to modify
@@ -594,7 +600,7 @@ int dmp_set_accel_bias(long *bias)
 
     mpu_get_accel_sens(&accel_sens);
     accel_sf = (long long)accel_sens << 15;
-    __no_operation();
+    // __no_operation(); // Removed for compatibility
 
     accel_bias_body[0] = bias[dmp.orient & 3];
     if (dmp.orient & 4)

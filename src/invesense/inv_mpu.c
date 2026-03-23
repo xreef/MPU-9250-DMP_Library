@@ -1,4 +1,4 @@
-/*
+﻿/*
  $License:
     Copyright (C) 2011-2012 InvenSense Corporation, All Rights Reserved.
     See included License.txt for License information.
@@ -53,11 +53,17 @@
 #define i2c_read(a, b, c, d)  arduino_i2c_read(a, b, c, d)
 #define delay_ms  arduino_delay_ms
 #define get_ms    arduino_get_clock_ms
-#define log_i     _MLPrintLog
-#define log_e     _MLPrintLog 
+#ifdef log_i
+#undef log_i
+#endif
+#ifdef log_e
+#undef log_e
+#endif
+#define log_i(...) do {} while(0)
+#define log_e(...) do {} while(0)
 static inline int reg_int_cb(struct int_param_s *int_param)
 {
-	
+	return 0;
 }
 
 #if !defined MPU6050 && !defined MPU9150 && !defined MPU6500 && !defined MPU9250
@@ -3137,6 +3143,14 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
         if (i2c_write(st.hw->addr, st.reg->user_ctrl, 3, data))
             goto lp_int_restore;
 
+        /* Set accel FSR to +/-2g for maximum WOM threshold resolution.
+         * WOM threshold LSB = 4mg at +/-2g FSR.
+         * Write directly to register to avoid cache/state checks in
+         * mpu_set_accel_fsr(). */
+        data[0] = 0x00;  /* INV_FSR_2G << 3 = 0 */
+        if (i2c_write(st.hw->addr, st.reg->accel_cfg, 1, data))
+            goto lp_int_restore;
+
         /* Set motion threshold. */
         data[0] = thresh_hw;
         if (i2c_write(st.hw->addr, st.reg->motion_thr, 1, data))
@@ -3166,9 +3180,27 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
         if (i2c_write(st.hw->addr, st.reg->lp_accel_odr, 1, data))
             goto lp_int_restore;
 
-        /* Enable motion interrupt (MPU6500 version). */
+        /* Enable motion interrupt (MPU6500 version).
+         * Register 0x69 ACCEL_INTEL_CTRL:
+         *   Bit 7: ACCEL_INTEL_EN   = enable WOM logic
+         *   Bit 6: ACCEL_INTEL_MODE = comparison mode
+         *
+         * Default (0xC0): Mode 1 "compare with previous sample".
+         * Use mpu_set_wom_mode() after this call to switch to
+         * Mode 0 "compare with initial sample" if needed. */
         data[0] = BITS_WOM_EN;
         if (i2c_write(st.hw->addr, st.reg->accel_intel, 1, data))
+            goto lp_int_restore;
+
+        /* Set DEC2_CFG averaging in ACCEL_CONFIG2 (0x1D, bits [5:4]).
+         * In cycle mode the DLPF is BYPASSED by hardware; DEC2_CFG is the
+         * ONLY noise-reduction mechanism.  Must be written BEFORE enabling
+         * cycle mode so the averaging is active from the very first sample.
+         * Value 3 = 32-sample averaging → noise RMS / sqrt(32) ≈ /5.6. */
+        if (i2c_read(st.hw->addr, st.reg->accel_cfg2, 1, data))
+            goto lp_int_restore;
+        data[0] = (data[0] & 0xCF) | (0x03 << 4);  /* DEC2_CFG = 3 (32 avg) */
+        if (i2c_write(st.hw->addr, st.reg->accel_cfg2, 1, data))
             goto lp_int_restore;
 
         /* Enable cycle mode. */
@@ -3223,6 +3255,100 @@ lp_int_restore:
 
     st.chip_cfg.int_motion_only = 0;
     return 0;
+}
+
+
+/**
+ *  @brief      Set accelerometer hardware averaging for low-power / cycle mode.
+ *  In cycle mode (used by Wake-on-Motion), the digital low-pass filter (DLPF)
+ *  is bypassed by the hardware. The ONLY noise-reduction mechanism available
+ *  is the DEC2_CFG averaging in register ACCEL_CONFIG2 (0x1D, bits [5:4]).
+ *
+ *  The driver's mpu_lp_motion_interrupt() does NOT configure this register,
+ *  leaving it at the chip's default (DEC2_CFG=0 -> only 4-sample averaging).
+ *  This causes false WOM triggers because high-frequency noise passes through
+ *  unfiltered.
+ *
+ *  Call this function AFTER mpu_lp_motion_interrupt() to enable hardware
+ *  averaging, which reduces RMS noise by sqrt(N) without affecting the
+ *  WOM sampling rate (lpa_freq).
+ *
+ *  @param[in]  avg     Averaging level:
+ *                        0 = 4 samples  (default, noisy)
+ *                        1 = 8 samples
+ *                        2 = 16 samples
+ *                        3 = 32 samples (recommended for WOM)
+ *  @return     0 if successful, -1 on error.
+ */
+int mpu_set_accel_averaging(unsigned char avg)
+{
+#if defined MPU6500
+    unsigned char data;
+
+    if (avg > 3)
+        return -1;
+
+    /* Read current ACCEL_CONFIG2 value. */
+    if (i2c_read(st.hw->addr, st.reg->accel_cfg2, 1, &data))
+        return -1;
+
+    /* Clear DEC2_CFG bits [5:4], then set new averaging value. */
+    data = (data & 0xCF) | ((avg & 0x03) << 4);
+
+    if (i2c_write(st.hw->addr, st.reg->accel_cfg2, 1, &data))
+        return -1;
+
+    return 0;
+#else
+    /* DEC2_CFG is MPU6500-specific. */
+    return -1;
+#endif
+}
+
+/**
+ *  @brief      Set the WOM comparison mode in ACCEL_INTEL_CTRL (0x69).
+ *
+ *  This function changes bit 6 (ACCEL_INTEL_MODE) of the ACCEL_INTEL_CTRL
+ *  register while keeping bit 7 (ACCEL_INTEL_EN) enabled.
+ *
+ *  Must be called AFTER mpu_lp_motion_interrupt() and BEFORE
+ *  esp_deep_sleep_start() so that the mode is active when cycle mode is
+ *  already running.
+ *
+ *  @param[in]  mode    Comparison mode:
+ *                        0 = compare with INITIAL sample (reference is
+ *                            captured once when WOM is activated; any
+ *                            deviation from rest position > threshold
+ *                            triggers the interrupt — best for detecting
+ *                            pick-up / shake from a static position).
+ *                        1 = compare with PREVIOUS sample (each sample
+ *                            is compared with the immediately preceding
+ *                            one — the library default, 0xC0).
+ *  @return     0 if successful, -1 on error.
+ */
+int mpu_set_wom_mode(unsigned char mode)
+{
+#if defined MPU6500
+    unsigned char data;
+
+    if (mode > 1)
+        return -1;
+
+    /* Read current ACCEL_INTEL_CTRL register. */
+    if (i2c_read(st.hw->addr, st.reg->accel_intel, 1, &data))
+        return -1;
+
+    /* Ensure ACCEL_INTEL_EN (bit 7) stays set.
+     * Set or clear ACCEL_INTEL_MODE (bit 6) according to mode. */
+    data = (data & 0x3F) | 0x80 | ((mode & 0x01) << 6);
+
+    if (i2c_write(st.hw->addr, st.reg->accel_intel, 1, &data))
+        return -1;
+
+    return 0;
+#else
+    return -1;
+#endif
 }
 
 /**
