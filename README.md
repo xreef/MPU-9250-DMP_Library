@@ -1,6 +1,6 @@
 MPU-9250 DMP Library
 
-Renzo Mischianti detail at [mischianti.org](mischianti.org)
+Renzo Mischianti detail at [mischianti.org](https://mischianti.org/mpu9250-with-esp32-and-arduino-accelerometer-magnetometer-and-gyroscope-via-i2c-and-spi/)
 
 
 ========================================
