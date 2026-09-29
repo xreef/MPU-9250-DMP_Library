@@ -1,7 +1,8 @@
 # MPU-9250 DMP Library
 
 **Author:** Renzo Mischianti \
-**Website:** [**mischianti.org**](https://mischianti.org/)
+**Website:** [**mischianti.org**](https://mischianti.org/) \
+**Arduino Library Registry:** [indexing logs](https://downloads.arduino.cc/libraries/logs/github.com/xreef/MPU-9250-DMP_Library/)
 
 > [!TIP]
 > 📖 **Full documentation, wiring diagrams and tutorials are available on [mischianti.org](https://mischianti.org/mpu9250-with-esp32-and-arduino-accelerometer-magnetometer-and-gyroscope-via-i2c-and-spi/).**
