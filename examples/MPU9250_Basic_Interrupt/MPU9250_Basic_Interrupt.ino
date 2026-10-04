@@ -2,21 +2,33 @@
 MPU9250_Basic_DataReady
 Basic example for the MPU-9250 DMP Arduino Library that uses the sensor's
 "data ready" signal to indicate when to re-read sensor data.
-Note: This is not a traditional hardware interrupt; it simply signals that new
-data is available for reading.
+
+IMPORTANT: This is a DATA-READY interrupt, NOT a motion-detection interrupt.
+The interrupt pin will fire CONTINUOUSLY at the configured sample rate
+(e.g., 4Hz = every 250ms) regardless of whether the sensor is moving or not.
+Its purpose is to synchronize data reads with the sensor's internal sampling
+clock, avoiding redundant or stale reads.
+
+If you need an interrupt that fires only when motion is detected, see the
+MPU9250_DMP_wom (Wake-on-Motion) example instead.
 
 Renzo Mischianti @ www.mischianti.org
-Original creation date: November 23, 2016
-https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
+https://github.com/xreef/MPU-9250-DMP_Library
 
-Supported Platforms:
-- ATSAMD21 (Arduino Zero, SparkFun SAMD21 Breakouts)
+Jim Lindblom @ SparkFun Electronics
+original creation date: November 23, 2016
+https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 *************************************************************/
 #include <MPU9250-DMP.h>
 
-#define INTERRUPT_PIN 1  // Pin used to monitor the sensor's data-ready signal
+// Pin used to monitor the sensor's data-ready signal (MPU-9250 INT pin).
+// Change it for your board: on ESP32-WROOM modules GPIO 6-11 are used by
+// the SPI flash and must not be used (e.g. use GPIO 4 on an ESP32 DevKit).
+#define INTERRUPT_PIN 10
 
 MPU9250_DMP imu;
+
+void printIMUData(void);
 
 void setup()
 {
@@ -24,6 +36,8 @@ void setup()
   // The sensor will pull this pin LOW when new data is available.
   pinMode(INTERRUPT_PIN, INPUT_PULLUP);
   Serial.begin(115200);
+  delay(2000); // Wait a bit for the serial monitor to open
+  Serial.println("Starting...");
 
   // Initialize the MPU-9250; if initialization fails, halt execution.
   if (imu.begin() != INV_SUCCESS)
@@ -36,6 +50,8 @@ void setup()
       delay(5000);
     }
   }
+
+  Serial.println("MPU-9250 initialized successfully!");
 
   // Configure the sensor to use the gyroscope, accelerometer, and magnetometer,
   // and set their sample rates to 4Hz (slow rate to easily observe the data-ready signal).
@@ -53,8 +69,8 @@ void setup()
   imu.setIntLevel(INT_ACTIVE_LOW);
 
   // Configure the interrupt mode as latched.
-  // In latching mode, once the data-ready signal goes LOW, it remains LOW until the data is read.
-  // This is used solely to flag that a fresh set of sensor data is available.
+  // In latching mode, once the data-ready signal goes LOW, it remains LOW until
+  // a sensor register is read (update() below releases it).
   imu.setIntLatched(INT_LATCHED);
 }
 
@@ -62,6 +78,8 @@ void loop()
 {
   // Check the state of the data-ready indicator.
   // A LOW state signifies that new data is ready to be read.
+  // NOTE: This fires at the configured sample rate (4Hz here), so expect
+  // continuous output every ~250ms even if the sensor is perfectly still.
   if (digitalRead(INTERRUPT_PIN) == LOW)
   {
     // Update the sensor readings from the MPU-9250.
@@ -69,6 +87,7 @@ void loop()
     imu.update(UPDATE_ACCEL | UPDATE_GYRO | UPDATE_COMPASS);
     printIMUData();
   }
+  delay(10); // Prevents I2C spam on fast microcontrollers like ESP32
 }
 
 void printIMUData(void)

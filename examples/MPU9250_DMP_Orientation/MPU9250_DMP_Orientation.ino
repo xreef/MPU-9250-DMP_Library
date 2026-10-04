@@ -1,8 +1,8 @@
 /************************************************************
 MPU9250_DMP_Orientation
- Orientation example for MPU-9250 DMP Arduino Library 
+ Orientation example for MPU-9250 DMP Arduino Library
 
-  Renzo Mischianti @ mischianti.org
+ Renzo Mischianti @ mischianti.org
  https://github.com/xreef/MPU-9250-DMP_Library
 
 Jim Lindblom @ SparkFun Electronics
@@ -10,7 +10,9 @@ original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 
 Uses the MPU-9250's digital motion processing engine to
-determine orientation of the board.
+determine the orientation of the board (portrait/landscape,
+like a phone screen). A message is printed every time the
+orientation changes.
 
 *************************************************************/
 #include <MPU9250-DMP.h>
@@ -23,10 +25,8 @@ determine orientation of the board.
 
 MPU9250_DMP imu;
 
-unsigned long stepCount = 0;
-unsigned long stepTime = 0;
-unsigned long lastStepCount = 0;
-
+// Mounting matrix: how the sensor axes are aligned with the board.
+// The identity matrix means the sensor and the board axes match.
 const signed char orientationMatrix[9] = {
   1, 0, 0,
   0, 1, 0,
@@ -34,9 +34,11 @@ const signed char orientationMatrix[9] = {
 };
 unsigned char lastOrient = 0;
 
-void setup() 
+void setup()
 {
   SerialPort.begin(115200);
+  delay(2000); // Wait a bit for the serial monitor to open
+  SerialPort.println("Starting...");
 
   // Call imu.begin() to verify communication and initialize
   if (imu.begin() != INV_SUCCESS)
@@ -49,13 +51,17 @@ void setup()
       delay(5000);
     }
   }
-  
+
+  SerialPort.println("MPU-9250 initialized successfully!");
+
+  // Enable the DMP orientation feature and apply the mounting matrix.
   imu.dmpBegin(DMP_FEATURE_ANDROID_ORIENT);
   imu.dmpSetOrientation(orientationMatrix);
 }
 
-void loop() 
+void loop()
 {
+  // The orientation is updated each time the DMP FIFO is read.
   if ( imu.fifoAvailable() )
   {
     imu.dmpUpdateFifo();
@@ -80,5 +86,5 @@ void loop()
       lastOrient = orient;
     }
   }
+  delay(10); // Prevents I2C spam on fast microcontrollers like ESP32
 }
-

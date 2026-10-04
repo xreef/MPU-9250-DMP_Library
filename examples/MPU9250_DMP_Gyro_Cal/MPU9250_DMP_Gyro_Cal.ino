@@ -1,8 +1,8 @@
 /************************************************************
 MPU9250_DMP_Gyro_Cal
- Gyro calibration example for MPU-9250 DMP Arduino Library 
+ Gyro calibration example for MPU-9250 DMP Arduino Library
 
-  Renzo Mischianti @ mischianti.org
+ Renzo Mischianti @ mischianti.org
  https://github.com/xreef/MPU-9250-DMP_Library
 
 Jim Lindblom @ SparkFun Electronics
@@ -25,9 +25,13 @@ gyro biases and subtract them.
 
 MPU9250_DMP imu;
 
-void setup() 
+void printIMUData(void);
+
+void setup()
 {
   SerialPort.begin(115200);
+  delay(2000); // Wait a bit for the serial monitor to open
+  SerialPort.println("Starting...");
 
   // Call imu.begin() to verify communication and initialize
   if (imu.begin() != INV_SUCCESS)
@@ -41,38 +45,44 @@ void setup()
     }
   }
 
+  SerialPort.println("MPU-9250 initialized successfully!");
+
   imu.setSensors(INV_XYZ_GYRO); // Enable gyroscope only
   imu.setGyroFSR(2000); // Set gyro to 2000 dps
 
   imu.dmpBegin(DMP_FEATURE_GYRO_CAL |   // Enable gyro cal
               DMP_FEATURE_SEND_CAL_GYRO,// Send cal'd gyro values
               10);                   // Set DMP rate to 10 Hz
+
+  // NOTE: Leave the sensor perfectly still for ~8 seconds after startup.
+  // The DMP will automatically compute gyro biases and subtract them.
+  // After calibration, gyro readings should be near zero when stationary.
 }
 
-void loop() 
+void loop()
 {
   // Check for new data in the FIFO
   if ( imu.fifoAvailable() )
   {
-    // Use dmpUpdateFifo to update the ax, gx, mx, etc. values
+    // Use dmpUpdateFifo to update the ax, gx, etc. values
     if ( imu.dmpUpdateFifo() == INV_SUCCESS)
     {
       printIMUData();
     }
   }
+  delay(10); // Prevents I2C spam on fast microcontrollers like ESP32
 }
 
 void printIMUData(void)
-{  
-  // After calling dmpUpdateFifo() the ax, gx, mx, etc. values
+{
+  // After calling dmpUpdateFifo() the ax, gx, etc. values
   // are all updated.
   float gyroX = imu.calcGyro(imu.gx);
   float gyroY = imu.calcGyro(imu.gy);
   float gyroZ = imu.calcGyro(imu.gz);
-  
+
   SerialPort.println("Gyro: " + String(gyroX) + ", " +
               String(gyroY) + ", " + String(gyroZ) + " dps");
   SerialPort.println("Time: " + String(imu.time) + " ms");
   SerialPort.println();
 }
-

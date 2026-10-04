@@ -1,6 +1,6 @@
 /************************************************************
 MPU9250_Basic
- Basic example sketch for MPU-9250 DMP Arduino Library 
+ Basic example sketch for MPU-9250 DMP Arduino Library
 
  Renzo Mischianti @ mischianti.org
  https://github.com/xreef/MPU-9250-DMP_Library
@@ -9,8 +9,9 @@ Jim Lindblom @ SparkFun Electronics
 original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 
-This example sketch demonstrates how to initialize the 
-MPU-9250, and stream its sensor outputs to a serial monitor.
+This example sketch demonstrates how to initialize the
+MPU-9250, and stream its sensor outputs (accelerometer,
+gyroscope, magnetometer and temperature) to a serial monitor.
 
 *************************************************************/
 #include <MPU9250-DMP.h>
@@ -23,12 +24,16 @@ MPU-9250, and stream its sensor outputs to a serial monitor.
 
 MPU9250_DMP imu;
 
-void setup() 
+void printIMUData(void);
+
+void setup()
 {
   SerialPort.begin(115200);
+  delay(2000); // Wait a bit for the serial monitor to open
+  SerialPort.println("Starting...");
 
   // Call imu.begin() to verify communication with and
-  // initialize the MPU-9250 to it's default values.
+  // initialize the MPU-9250 to its default values.
   // Most functions return an error code - INV_SUCCESS (0)
   // indicates the IMU was present and successfully set up
   if (imu.begin() != INV_SUCCESS)
@@ -41,6 +46,8 @@ void setup()
       delay(5000);
     }
   }
+
+  SerialPort.println("MPU-9250 initialized successfully!");
 
   // Use setSensors to turn on or off MPU-9250 sensors.
   // Any of the following defines can be combined:
@@ -55,8 +62,8 @@ void setup()
   imu.setGyroFSR(2000); // Set gyro to 2000 dps
   // Accel options are +/- 2, 4, 8, or 16 g
   imu.setAccelFSR(2); // Set accel to +/-2g
-  // Note: the MPU-9250's magnetometer FSR is set at 
-  // +/- 4912 uT (micro-tesla's)
+  // Note: the MPU-9250's magnetometer FSR is fixed at
+  // +/- 4912 uT (micro-tesla)
 
   // setLPF() can be used to set the digital low-pass filter
   // of the accelerometer and gyroscope.
@@ -74,29 +81,32 @@ void setup()
   imu.setCompassSampleRate(10); // Set mag rate to 10Hz
 }
 
-void loop() 
+void loop()
 {
   // dataReady() checks to see if new accel/gyro data
-  // is available. It will return a boolean true or false
+  // is available. It will return a boolean true or false.
   // (New magnetometer data cannot be checked, as the library
   //  runs that sensor in single-conversion mode.)
+  // NOTE: This is a software polling approach. For a hardware
+  // interrupt-driven approach, see the MPU9250_Basic_Interrupt example.
   if ( imu.dataReady() )
   {
     // Call update() to update the imu objects sensor data.
     // You can specify which sensors to update by combining
     // UPDATE_ACCEL, UPDATE_GYRO, UPDATE_COMPASS, and/or
-    // UPDATE_TEMPERATURE.
+    // UPDATE_TEMP.
     // (The update function defaults to accel, gyro, compass,
     //  so you don't have to specify these values.)
-    imu.update(UPDATE_ACCEL | UPDATE_GYRO | UPDATE_COMPASS);
+    imu.update(UPDATE_ACCEL | UPDATE_GYRO | UPDATE_COMPASS | UPDATE_TEMP);
     printIMUData();
   }
+  delay(10); // Prevents I2C spam on fast microcontrollers like ESP32
 }
 
 void printIMUData(void)
-{  
+{
   // After calling update() the ax, ay, az, gx, gy, gz, mx,
-  // my, mz, time, and/or temerature class variables are all
+  // my, mz, time, and/or temperature class variables are all
   // updated. Access them by placing the object. in front:
 
   // Use the calcAccel, calcGyro, and calcMag functions to
@@ -111,14 +121,17 @@ void printIMUData(void)
   float magX = imu.calcMag(imu.mx);
   float magY = imu.calcMag(imu.my);
   float magZ = imu.calcMag(imu.mz);
-  
+
+  // Calculate temperature in degrees Celsius
+  float temp = imu.calcTempCelsius();
+
   SerialPort.println("Accel: " + String(accelX) + ", " +
               String(accelY) + ", " + String(accelZ) + " g");
   SerialPort.println("Gyro: " + String(gyroX) + ", " +
               String(gyroY) + ", " + String(gyroZ) + " dps");
   SerialPort.println("Mag: " + String(magX) + ", " +
               String(magY) + ", " + String(magZ) + " uT");
+  SerialPort.println("Temp: " + String(temp, 2) + " C");
   SerialPort.println("Time: " + String(imu.time) + " ms");
   SerialPort.println();
 }
-
