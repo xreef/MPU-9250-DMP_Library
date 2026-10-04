@@ -9,7 +9,7 @@ original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 
 This library implements motion processing functions of Invensense's MPU-9250.
-It is based on their Emedded MotionDriver 6.12 library.
+It is based on their Embedded MotionDriver 6.12 library.
 	https://www.invensense.com/developers/software-downloads/
 ******************************************************************************/
 #ifndef _SPARKFUN_MPU9250_DMP_H_
@@ -18,11 +18,10 @@ It is based on their Emedded MotionDriver 6.12 library.
 #include <Wire.h>
 #include <Arduino.h>
 
-// Optimally, these defines would be passed as compiler options, but Arduino
-// doesn't give us a great way to do that.
-#define MPU9250
-#define AK8963_SECONDARY
-#define COMPASS_ENABLED
+// The chip (MPU9250 with its AK8963 magnetometer) is selected inside
+// invesense/inv_mpu.c. It is not #defined here, so empty macros such as
+// MPU9250 do not leak into user sketches (they would break e.g. a
+// "class MPU9250" from other MPU-9250 libraries).
 
 // Include the Invensense MPU9250 driver and DMP keys:
 extern "C" {
@@ -242,7 +241,7 @@ public:
 	// DMP_FEATURE_GYRO_CAL -- Gyroscope calibration (0's out after 8 seconds of no motion)
 	// DMP_FEATURE_SEND_RAW_ACCEL -- Send raw accelerometer values to FIFO
 	// DMP_FEATURE_SEND_RAW_GYRO -- Send raw gyroscope values to FIFO
-	// DMP_FEATURE_SEND_CAL_GYRO -- Send calibrated gyroscop values to FIFO
+	// DMP_FEATURE_SEND_CAL_GYRO -- Send calibrated gyroscope values to FIFO
 	// fifoRate can be anywhere between 4 and 200Hz.
 	// Input: OR'd list of features and requested FIFO sampling rate
 	// Output: INV_SUCCESS (0) on success, otherwise error
@@ -325,7 +324,7 @@ public:
 	// Input: Desired number of steps to begin incrementing from
 	// Output: INV_SUCCESS (0) on success, otherwise error
 	inv_error_t dmpSetPedometerSteps(unsigned long steps);
-	// dmpGetPedometerTime -- Get number of milliseconds ellapsed over stepping
+	// dmpGetPedometerTime -- Get number of milliseconds elapsed while stepping
 	// Output: Number of milliseconds where steps were detected
 	unsigned long dmpGetPedometerTime(void);
 	// dmpSetPedometerTime -- Set number time to begin incrementing step time counter from
@@ -333,13 +332,17 @@ public:
 	// Output: INV_SUCCESS (0) on success, otherwise error
 	inv_error_t dmpSetPedometerTime(unsigned long time);
 	
-	// dmpSetInterruptMode --
+	// dmpSetInterruptMode -- Choose when the DMP raises its interrupt
+	// Input: DMP_INT_CONTINUOUS (every FIFO packet) or DMP_INT_GESTURE
+	//        (only on gestures such as tap/orientation)
 	// Output: INV_SUCCESS (0) on success, otherwise error
 	inv_error_t dmpSetInterruptMode(unsigned char mode);
-	// dmpSetGyroBias --
+	// dmpSetGyroBias -- Push gyro biases into the DMP
+	// Input: 3-element array, biases in hardware units, q16 format
 	// Output: INV_SUCCESS (0) on success, otherwise error
 	inv_error_t dmpSetGyroBias(long * bias);
-	// dmpSetAccelBias -- 
+	// dmpSetAccelBias -- Push accel biases into the DMP
+	// Input: 3-element array, biases in hardware units, q16 format
 	// Output: INV_SUCCESS (0) on success, otherwise error
 	inv_error_t dmpSetAccelBias(long * bias);
 	
@@ -349,7 +352,7 @@ public:
 
 	// calcAccel -- Convert 16-bit signed acceleration value to g's
 	float calcAccel(int axis);
-	// calcGyro -- Convert 16-bit signed gyroscope value to degree's per second
+	// calcGyro -- Convert 16-bit signed gyroscope value to degrees per second
 	float calcGyro(int axis);
 	// calcMag -- Convert 16-bit signed magnetometer value to microtesla (uT)
 	float calcMag(int axis);

@@ -9,7 +9,7 @@ original creation date: November 23, 2016
 https://github.com/sparkfun/SparkFun_MPU9250_DMP_Arduino_Library
 
 This library implements motion processing functions of Invensense's MPU-9250.
-It is based on their Emedded MotionDriver 6.12 library.
+It is based on their Embedded MotionDriver 6.12 library.
 	https://www.invensense.com/developers/software-downloads/
 
 ******************************************************************************/
@@ -564,6 +564,36 @@ inv_error_t MPU9250_DMP::dmpEnable3Quat(void)
 		return INV_ERROR;
 	
 	return dmp_enable_lp_quat(1);
+}
+
+inv_error_t MPU9250_DMP::dmpEnable6Quat(void)
+{
+	unsigned short dmpFeatures;
+	
+	// 3-axis and 6-axis quat are mutually exclusive
+	dmpFeatures = dmpGetEnabledFeatures();
+	dmpFeatures &= ~(DMP_FEATURE_LP_QUAT);
+	dmpFeatures |= DMP_FEATURE_6X_LP_QUAT;
+	
+	if (dmpEnableFeatures(dmpFeatures) != INV_SUCCESS)
+		return INV_ERROR;
+	
+	return dmp_enable_6x_lp_quat(1);
+}
+
+inv_error_t MPU9250_DMP::dmpSetInterruptMode(unsigned char mode)
+{
+	return dmp_set_interrupt_mode(mode);
+}
+
+inv_error_t MPU9250_DMP::dmpSetGyroBias(long * bias)
+{
+	return dmp_set_gyro_bias(bias);
+}
+
+inv_error_t MPU9250_DMP::dmpSetAccelBias(long * bias)
+{
+	return dmp_set_accel_bias(bias);
 }
 	
 unsigned long MPU9250_DMP::dmpGetPedometerSteps(void)
