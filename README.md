@@ -205,6 +205,7 @@ These examples show how to use the MPU-9250 in common scenarios, from basic data
 
 | Date       | Version | Notes                                  |
 |------------|---------|----------------------------------------|
+| 2026-10-05 | 1.0.1   | Fix Wake-on-Motion, implement missing DMP methods, improve I2C error handling, add WebSerial 3D example and update docs |
 | 2024-08-19 | 1.0.0   | First commit of the production library |
 
 ---

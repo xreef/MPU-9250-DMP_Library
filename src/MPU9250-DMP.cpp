@@ -49,7 +49,12 @@ inv_error_t MPU9250_DMP::begin(void)
 	
 	Wire.begin();
 	
-	result = mpu_init(&int_param);
+	unsigned long start = millis();
+	do {
+		result = mpu_init(&int_param);
+		if (!result) break;
+		delay(10);
+	} while (millis() - start < 500);
 	
 	if (result)
 		return result;
