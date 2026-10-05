@@ -19,6 +19,7 @@
 - [📖 Tutorials on mischianti.org](#-tutorials-on-mischiantiorg)
 - [Overview](#overview)
 - [Repository Contents](#repository-contents)
+- [Examples](#examples)
 - [Getting Started](#getting-started)
   - [Setting Up the MPU-9250](#setting-up-the-mpu-9250)
   - [Configuring Sensor Settings](#configuring-sensor-settings)
@@ -81,6 +82,33 @@ Along with configuring and reading from the accelerometer, gyroscope, and magnet
 | `/src/util`          | Source and headers for the MPU-9250 driver and DMP configuration, adapted from [InvenSense's downloads page](https://www.invensense.com/developers/software-downloads/#sla_content_45).       |
 | `keywords.txt`       | Keywords from this library that will be highlighted in the Arduino IDE.                                                                                                                      |
 | `library.properties` | General library properties for the Arduino package manager.                                                                                                                                  |
+
+---
+
+## Examples
+
+Every sketch is in the [`examples`](examples) folder and can be opened from **File > Examples > MPU9250-DMP** in the Arduino IDE.
+
+| Example | What it does | Key API | Notes |
+|---------|--------------|---------|-------|
+| [`MPU9250_Basic`](examples/MPU9250_Basic) | Polls accelerometer, gyroscope, magnetometer and temperature and prints them on the serial monitor. | `setSensors()`, `setGyroFSR()`, `setAccelFSR()`, `setLPF()`, `setSampleRate()`, `setCompassSampleRate()`, `update()`, `calcAccel()`, `calcGyro()`, `calcMag()` | Start here: it verifies wiring and I2C communication. 10 Hz sample rate, gyro 2000 dps, accel +/-2 g, LPF 5 Hz. |
+| [`MPU9250_Basic_Interrupt`](examples/MPU9250_Basic_Interrupt) | Reads accelerometer, gyroscope and magnetometer only when the INT pin signals that new data is ready. | `enableInterrupt()`, `setIntLevel(INT_ACTIVE_LOW)`, `setIntLatched(INT_LATCHED)`, `update()` | **Data-ready interrupt, not a motion interrupt**: the pin fires at the sample rate (4 Hz) even when the sensor is still. For motion use `DMP_wom`. |
+| [`MPU9250_DMP_wom`](examples/MPU9250_DMP_wom) | Low-power **Wake-on-Motion**: gyroscope and magnetometer are powered down, the accelerometer wakes at 2.5 Hz and pulses INT when the motion exceeds 40 mg. | `setSensors(INV_XYZ_ACCEL)`, `setIntLevel()`, `mpu_set_bypass(0)`, `mpu_lp_motion_interrupt()`, `attachInterrupt()`, `dataReady()` | Threshold (4 mg/LSB) and wake-up rate are `#define`s at the top of the sketch. Optional accelerometer averaging. |
+| [`MPU9250_FIFO_Basic`](examples/MPU9250_FIFO_Basic) | Reads accelerometer and gyroscope samples from the hardware FIFO instead of polling the registers. | `setSampleRate(100)`, `configureFifo()`, `fifoAvailable()`, `updateFifo()` | Gyroscope and accelerometer are buffered at 100 Hz; the magnetometer cannot be stored in the FIFO by this library. |
+| [`MPU9250_DMP_Quaternion`](examples/MPU9250_DMP_Quaternion) | Uses the DMP to compute the 6-axis quaternion and prints it together with pitch, roll and yaw. | `dmpBegin(DMP_FEATURE_6X_LP_QUAT \| DMP_FEATURE_GYRO_CAL, 10)`, `dmpUpdateFifo()`, `computeEulerAngles()` | Roll and pitch are referenced to gravity; yaw is relative to the start-up heading and drifts slowly. |
+| [`MPU9250_DMP_Orientation`](examples/MPU9250_DMP_Orientation) | Detects the orientation of the board (Android-style portrait/landscape) and reports it when it changes. | `dmpBegin(DMP_FEATURE_ANDROID_ORIENT)`, `dmpSetOrientation()`, `dmpGetOrientation()` | The `orientationMatrix` in the sketch maps the sensor axes to the board axes. |
+| [`MPU9250_DMP_Pedometer`](examples/MPU9250_DMP_Pedometer) | Counts steps with the DMP pedometer and prints the step count and walking time. | `dmpBegin(DMP_FEATURE_PEDOMETER)`, `dmpSetPedometerSteps()`, `dmpSetPedometerTime()`, `dmpGetPedometerSteps()`, `dmpGetPedometerTime()` | Shake the board up and down at stepping speed; the DMP needs a few consecutive steps (typically 5-7) before it starts counting. |
+| [`MPU9250_DMP_Tap`](examples/MPU9250_DMP_Tap) | Detects single and double taps with the DMP, here on the Z axis, and prints the tap direction and count. | `dmpBegin(DMP_FEATURE_TAP, 10)`, `dmpSetTap()`, `tapAvailable()`, `getTapDir()`, `getTapCount()` | Try to reach the maximum count of 8 taps. |
+| [`MPU9250_DMP_Gyro_Cal`](examples/MPU9250_DMP_Gyro_Cal) | Lets the DMP calibrate the gyroscope and prints the calibrated gyro values. | `dmpBegin(DMP_FEATURE_GYRO_CAL \| DMP_FEATURE_SEND_CAL_GYRO, 10)`, `dmpUpdateFifo()` | Keep the board still: after about 8 seconds without motion the DMP computes the gyro biases and subtracts them. |
+| [`MPU9250_WebSerial_3d`](examples/MPU9250_WebSerial_3d) | Streams quaternion and Euler angles in the format of the **3D Model Viewer**. **[Test it live in your browser](https://mischianti.org/3d-model-viewer-visualize-quaternions-and-euler-angles-from-serial-data-in-real-time/)**. | `dmpBegin(DMP_FEATURE_6X_LP_QUAT \| DMP_FEATURE_GYRO_CAL, 10)`, `dmpUpdateFifo()`, `computeEulerAngles()` | Sends `Orientation: heading, pitch, roll` and `Quaternion: w, x, y, z` at 115200 baud. The DMP quaternion is 6-axis: heading is relative to the start-up position. |
+
+> [!TIP]
+> **Try the 3D example in your browser.** Upload `MPU9250_WebSerial_3d`, close the Arduino Serial Monitor so the port is free, then open the [3D Model Viewer page on mischianti.org](https://mischianti.org/3d-model-viewer-visualize-quaternions-and-euler-angles-from-serial-data-in-real-time/) and connect to the board's serial port (115200 baud) with the Web Serial API (Chrome or Edge).
+
+<p align="center">
+  <img src="resources/mpu-webserial-3d.jpg" width="420" alt="MPU sensor on a breadboard moving the 3D model in the mischianti.org 3D Model Viewer through Web Serial"><br>
+  <em>The MPU sensor driving the 3D Model Viewer in real time through the Web Serial API.</em>
+</p>
 
 ---
 
