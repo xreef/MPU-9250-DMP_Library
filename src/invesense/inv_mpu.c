@@ -25,13 +25,13 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef ESP32
+/* Defined here rather than relying on Arduino.h's min() macro: this file no
+ * longer includes <Arduino.h>. */
+#ifndef min
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
 
-#ifdef ESP8266
-#define min(a,b) ((a)<(b)?(a):(b))
-#endif
+
 
 /* The following functions must be defined for this platform:
  * i2c_write(unsigned char slave_addr, unsigned char reg_addr,
@@ -45,7 +45,6 @@
  * fabsf(float x)
  * min(int a, int b)
  */
-#include <Arduino.h>
 #define MPU9250
 #include "../invesense/arduino_mpu9250_i2c.h"
 #include "../invesense/arduino_mpu9250_clk.h"

@@ -1,4 +1,4 @@
-/*
+﻿/*
  $License:
     Copyright (C) 2011-2012 InvenSense Corporation, All Rights Reserved.
     See included License.txt for License information.
@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <Arduino.h>
 #include "../invesense/arduino_mpu9250_clk.h"
 #include "../invesense/arduino_mpu9250_i2c.h"
 #include "../invesense/dmpKey.h"
